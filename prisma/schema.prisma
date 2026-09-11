@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  role          String   @default("rtv")
+  area          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  negotiations        Negotiation[]
+  marketReadings      MarketReading[]
+  competitiveTracking CompetitiveTracking[]
+  activities          DemandActivity[]
+  arrastaoRecords     ArrastaoRecord[]
+  diagnoseRecords     DiagnoseRecord[]
+}
+
+model Area {
+  id       String  @id @default(uuid())
+  nome     String
+  parentId String?
+  parent   Area?   @relation("AreaHierarchy", fields: [parentId], references: [id])
+  children Area[]  @relation("AreaHierarchy")
+  clients        Client[]
+  marketReadings MarketReading[]
+}
+
+model Harvest {
+  id        String  @id @default(uuid())
+  nome      String  @unique
+  ativo     Boolean @default(true)
+  negotiations        Negotiation[]
+  marketReadings      MarketReading[]
+  competitiveTracking CompetitiveTracking[]
+  activities          DemandActivity[]
+  arrastaoRecords     ArrastaoRecord[]
+}
+
+model Client {
+  id                 String   @id @default(uuid())
+  nome               String
+  municipio          String
+  estado             String   @default("SP")
+  segmento           String   @default("C")
+  carteira           String   @default("Geral")
+  hectaresTotal      Float    @default(0)
+  potencialEstimado  Float    @default(0)
+  indiceOportunidade Int      @default(50)
+  canal              String?
+  areaId             String?
+  area               Area?    @relation(fields: [areaId], references: [id])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  culturas            ClientCulture[]
+  decisores           Decisor[]
+  historico           ClientHistorico[]
+  negotiations        Negotiation[]
+  competitiveTracking CompetitiveTracking[]
+  arrastaoRecords     ArrastaoRecord[]
+}
+
+model ClientCulture {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  cultura  String
+  epoca    String?
+  hectares Float  @default(0)
+}
+
+model Decisor {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  nome     String
+  cargo    String
+  papel    String
+  telefone String?
+  email    String?
+}
+
+model ClientHistorico {
+  id       String   @id @default(uuid())
+  clientId String
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tipo     String
+  detalhe  String
+  data     DateTime @default(now())
+}
+
+model MarketReading {
+  id             String   @id @default(uuid())
+  areaId         String
+  area           Area     @relation(fields: [areaId], references: [id])
+  harvestId      String
+  harvest        Harvest  @relation(fields: [harvestId], references: [id])
+  cultura        String
+  epoca          String?
+  potencialTotal Float
+  mercadoRodado  Float
+  confianca      String   @default("Medio")
+  fonte          String   @default("Leitura da equipe comercial")
+  dataLeitura    DateTime
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  createdAt      DateTime @default(now())
+}
+
+model Negotiation {
+  id            String    @id @default(uuid())
+  clientId      String
+  client        Client    @relation(fields: [clientId], references: [id])
+  harvestId     String
+  harvest       Harvest   @relation(fields: [harvestId], references: [id])
+  produto       String
+  estagio       String    @default("Em negociacao")
+  volume        Float     @default(0)
+  unidade       String    @default("Sacas")
+  dataDecisao   DateTime?
+  proximaAcao   String?
+  responsavelId String
+  responsavel   User      @relation(fields: [responsavelId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model CompetitiveTracking {
+  id            String   @id @default(uuid())
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id])
+  harvestId     String
+  harvest       Harvest  @relation(fields: [harvestId], references: [id])
+  empresa       String
+  hibrido       String?
+  volume        Float    @default(0)
+  unidade       String   @default("Sacas")
+  confianca     String   @default("Estimada")
+  dataInfo      DateTime @default(now())
+  responsavelId String
+  responsavel   User     @relation(fields: [responsavelId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model DemandActivity {
+  id            String   @id @default(uuid())
+  tipo          String
+  harvestId     String
+  harvest       Harvest  @relation(fields: [harvestId], references: [id])
+  clienteNome   String
+  fazenda       String?
+  municipio     String?
+  cultura       String
+  epoca         String?
+  finalidade    String?
+  areaTotal     Float?
+  objetivo      String?
+  status        String   @default("Planejada")
+  responsavelId String
+  responsavel   User     @relation(fields: [responsavelId], references: [id])
+  dataCriacao   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  implantacao   ActivityImplantacao?
+  avaliacoes    ActivityEvaluation[]
+  colheita      ActivityHarvest?
+  tratamentos   ActivityTreatment[]
+}
+
+model ActivityTreatment {
+  id         String         @id @default(uuid())
+  activityId String
+  activity   DemandActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  empresa    String
+  hibrido    String
+  populacao  Int?
+  area       Float?
+  tecnologia String?
+}
+
+model ActivityImplantacao {
+  id             String         @id @default(uuid())
+  activityId     String         @unique
+  activity       DemandActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  dataPlantio    DateTime?
+  populacao      Int?
+  espacamento    Float?
+  areaImplantada Float?
+  condicao       String?
+  sistema        String?
+  observacoes    String?
+}
+
+model ActivityEvaluation {
+  id               String         @id @default(uuid())
+  activityId       String
+  activity         DemandActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  dataAvaliacao    DateTime       @default(now())
+  estadio          String?
+  populacaoObserv  Int?
+  uniformidade     String?
+  acamamento       Float?
+  quebramento      Float?
+  avaliacaoTecnica String?
+  percepcaoCliente String?
+}
+
+model ActivityHarvest {
+  id                String         @id @default(uuid())
+  activityId        String         @unique
+  activity          DemandActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  dataColheita      DateTime?
+  tipo              String         @default("grao")
+  areaColhida       Float?
+  pesoBruto         Float?
+  umidade           Float?
+  umidadePadrao     Float?         @default(13)
+  impureza          Float?         @default(1)
+  pesoLimpo         Float?
+  pesoCorrigido     Float?
+  produtividadeKgHa Float?
+  produtividadeScHa Float?
+  pesoMassaVerde    Float?
+  materiaSecaPct    Float?
+  alturaCorte       Float?
+  resultadoTecnico  String?
+  percepcaoFinal    String?
+  conclusao         String?
+  proximaAcao       String?
+}
+
+model ArrastaoRecord {
+  id            String   @id @default(uuid())
+  harvestId     String
+  harvest       Harvest  @relation(fields: [harvestId], references: [id])
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id])
+  empresa       String
+  hibrido       String?
+  volume        Float    @default(0)
+  unidade       String   @default("Sacas")
+  responsavelId String
+  responsavel   User     @relation(fields: [responsavelId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model DiagnoseRecord {
+  id            String   @id @default(uuid())
+  pontoVenda    String
+  municipio     String?
+  segmento      String
+  empresa       String
+  produto       String?
+  volume        Float    @default(0)
+  unidade       String   @default("Sacas")
+  responsavelId String
+  responsavel   User     @relation(fields: [responsavelId], references: [id])
+  createdAt     DateTime @default(now())
+}
