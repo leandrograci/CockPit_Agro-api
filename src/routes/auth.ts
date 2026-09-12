@@ -16,12 +16,14 @@ function signTokens(userId: string, role: string) {
   const accessToken = jwt.sign(
     { sub: userId, role },
     process.env.JWT_SECRET!,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { expiresIn: (process.env.JWT_EXPIRES_IN || '1h') as any }
   )
   const refreshToken = jwt.sign(
     { sub: userId, role },
     process.env.JWT_REFRESH_SECRET!,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as any }
   )
   return { accessToken, refreshToken }
 }

@@ -92,7 +92,8 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 router.get('/:id/360', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params
-    const client = id !== 'default' ? await prisma.client.findUnique({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const client: any = id !== 'default' ? await prisma.client.findUnique({
       where: { id },
       include: { culturas: true, decisores: true, historico: { orderBy: { data: 'desc' }, take: 5 }, negotiations: { orderBy: { createdAt: 'desc' }, take: 5 }, competitiveTracking: { orderBy: { createdAt: 'desc' }, take: 5 } },
     }) : null
