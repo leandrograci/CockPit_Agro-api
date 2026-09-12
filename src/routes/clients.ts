@@ -91,7 +91,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 // GET /api/clients/:id/360
 router.get('/:id/360', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params
+    const id = req.params['id'] as string
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const client: any = id !== 'default' ? await prisma.client.findUnique({
       where: { id },
