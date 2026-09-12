@@ -1,0 +1,96 @@
+name: Deploy API to CapRover
+
+on:
+  # Trigger manual pelo painel do GitHub Actions (Actions → Run workflow)
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Ambiente de destino"
+        required: false
+        default: "production"
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout do código
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Configura Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # 3. Instala dependências (incluindo devDependencies para compilar)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Gera o Prisma Client
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # 5. Compila TypeScript
+      - name: Build production bundle
+        run: npm run build
+
+      # 6. Empacota os arquivos necessários para o CapRover buildar a imagem Docker.
+      #    O build local (dist/) NÃO é incluído — o CapRover vai buildar dentro do container.
+      #    Isso garante que o ambiente de build é sempre o mesmo (Linux/Alpine).
+      - name: Package source files
+        run: |
+          tar -czf ./deploy.tar \
+            captain-definition \
+            Dockerfile \
+            docker-entrypoint.sh \
+            package.json \
+            package-lock.json \
+            tsconfig.json \
+            src \
+            prisma
+
+      # 7. Envia o tarball diretamente à API REST do CapRover via curl.
+      #    CAPROVER_SERVER = ex: http://44.200.242.58  (sem porta, sem barra final)
+      #    A porta 3000 deve estar aberta no firewall do servidor.
+      - name: Deploy to CapRover via API
+        run: |
+          SERVER="${{ secrets.CAPROVER_SERVER }}"
+          APP_NAME="${{ secrets.CAPROVER_APP_NAME }}"
+          APP_TOKEN="${{ secrets.CAPROVER_APP_TOKEN }}"
+
+          echo "→ Verificando conectividade com o servidor CapRover..."
+          if ! curl -sf --connect-timeout 10 --max-time 15 \
+               "${SERVER}:3000" -o /dev/null 2>&1; then
+            echo "::warning::Porta 3000 inacessível. Verifique as regras de firewall/security group."
+          fi
+
+          echo "→ Enviando build para o CapRover..."
+          RESPONSE=$(curl -sf \
+            --connect-timeout 15 \
+            --max-time 300 \
+            -o /tmp/caprover_response.json \
+            -w "%{http_code}" \
+            -X POST \
+            "${SERVER}:3000/api/v2/user/apps/appData/${APP_NAME}?detached=1" \
+            -H "x-captain-app-token: ${APP_TOKEN}" \
+            -F "sourceFile=@./deploy.tar" || echo "CURL_ERROR_$?")
+
+          echo "HTTP Status: $RESPONSE"
+          cat /tmp/caprover_response.json 2>/dev/null || true
+
+          if [[ "$RESPONSE" == "CURL_ERROR_28" ]]; then
+            echo "::error::Timeout ao conectar ao CapRover. A porta 3000 está bloqueada no firewall?"
+            exit 1
+          elif [[ "$RESPONSE" == "CURL_ERROR_"* ]]; then
+            echo "::error::Erro de rede (${RESPONSE}). Verifique o CAPROVER_SERVER e a conectividade."
+            exit 1
+          elif [ "$RESPONSE" != "200" ]; then
+            echo "::error::Deploy falhou com HTTP $RESPONSE"
+            exit 1
+          fi
+
+          echo "✅ Deploy enviado com sucesso! Acompanhe o build no painel do CapRover."
