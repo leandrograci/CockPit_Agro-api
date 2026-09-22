@@ -17,6 +17,7 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 # Copia o restante do código-fonte e compila TypeScript
+# (prisma/ já foi copiado acima — seed.ts será incluído no build)
 COPY tsconfig.json ./
 COPY src ./src
 RUN npm run build

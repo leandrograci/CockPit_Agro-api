@@ -8,4 +8,4 @@ echo "🌱 Executando seed (idempotente)..."
 npx prisma db seed
 
 echo "🚀 Iniciando a API..."
-exec node dist/server.js
+exec node dist/src/server.js

@@ -7,7 +7,7 @@
         "build": "tsc",
         "db:push": "npx prisma db push",
         "db:studio": "npx prisma studio",
-        "start": "node dist/server.js",
+        "start": "node dist/src/server.js",
         "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
         "seed": "tsx prisma/seed.ts",
         "db:migrate": "npx prisma migrate dev",
