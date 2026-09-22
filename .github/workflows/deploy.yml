@@ -64,7 +64,7 @@ jobs:
 
           echo "→ Verificando conectividade com o servidor CapRover..."
           if ! curl -sf --connect-timeout 10 --max-time 15 \
-               "${SERVER}:3000" -o /dev/null 2>&1; then
+               "${SERVER}" -o /dev/null 2>&1; then
             echo "::warning::Porta 3000 inacessível. Verifique as regras de firewall/security group."
           fi
 
@@ -75,7 +75,7 @@ jobs:
             -o /tmp/caprover_response.json \
             -w "%{http_code}" \
             -X POST \
-            "${SERVER}:3000/api/v2/user/apps/appData/${APP_NAME}?detached=1" \
+            "${SERVER}/api/v2/user/apps/appData/${APP_NAME}?detached=1" \
             -H "x-captain-app-token: ${APP_TOKEN}" \
             -F "sourceFile=@./deploy.tar" || echo "CURL_ERROR_$?")
 
