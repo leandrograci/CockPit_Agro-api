@@ -9,7 +9,7 @@ import marketRoutes from './routes/market'
 import trackingRoutes from './routes/tracking'
 
 const app = express()
-const PORT = process.env.PORT || 4000
+const PORT = Number(process.env.PORT) || 4000
 
 // Origens permitidas: produção (www + apex) + desenvolvimento local.
 // FRONTEND_URL pode sobrescrever/adicionar uma origem via variável de ambiente.
@@ -46,8 +46,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-app.listen(PORT, () => {
-  console.log(`🚀 CockPit Agro API rodando em http://localhost:${PORT}`)
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 CockPit Agro API rodando na porta ${PORT}`)
   console.log(`   Ambiente: ${process.env.NODE_ENV}`)
 })
 
