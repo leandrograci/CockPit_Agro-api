@@ -3,6 +3,9 @@
 # ─────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
+# Instala openssl (necessário para o Prisma engine no Alpine)
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Instala dependências (todas, incluindo devDependencies para compilar)
@@ -22,6 +25,9 @@ RUN npm run build
 # Stage 2: Runtime (apenas o necessário)
 # ─────────────────────────────────────────────
 FROM node:20-alpine AS runner
+
+# Instala openssl (necessário para o Prisma engine no Alpine)
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
